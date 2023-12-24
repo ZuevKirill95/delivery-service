@@ -5,6 +5,7 @@ import styled from 'styled-components';
 import orderService from '../services/orderService';
 import { RootState } from '../store';
 
+
 const Container = styled.div`
   display: flex;
   flex-direction: column;
@@ -16,10 +17,6 @@ const CardsContainer = styled.div`
   flex-direction: row;
   flex-wrap: wrap;
   justify-content: center;
-`;
-
-const PaginationWrapper = styled.div`
-  margin-top: 16px;
 `;
 
 const StyledCard = styled(Card)`
@@ -38,7 +35,7 @@ const { Panel } = Collapse;
 const ActiveOrdersPage: React.FC = () => {
     const dispatch = useDispatch();
     const allOrders = useSelector((store: RootState) => store.order.allOrders);
-    const user = useSelector((store: RootState) => store.auth.user);
+
 
     useEffect(() => {
         orderService.getActiveDeliveryOrders(dispatch);
@@ -51,6 +48,36 @@ const ActiveOrdersPage: React.FC = () => {
             setExpandedPanel(key[1]);
         } else {
             setExpandedPanel(key);
+        }
+    };
+
+    const handleTakeOrder = (orderId: number, status: string) => {
+
+        orderService.updateOrder({status: status, id:orderId}, dispatch);
+    };
+
+    const renderActionButton = (orderStatus: string|null, orderId: number) => {
+        console.log(orderStatus);
+        if (orderStatus === 'COOKED') {
+            return (
+                <Button
+                    onClick={() => handleTakeOrder(orderId, "DELIVERY")}
+                    type="primary"
+                    style={{ marginTop: '16px', marginBottom: '16px', width: '100%' }}
+                >
+                    Забрать
+                </Button>
+            );
+        } else if (orderStatus === 'DELIVERY') {
+            return (
+                <Button
+                    onClick={() => handleTakeOrder(orderId, "COMPLETED")}
+                    type="primary"
+                    style={{ marginTop: '16px', marginBottom: '16px' }}
+                >
+                    Завершить
+                </Button>
+            );
         }
     };
 
@@ -95,8 +122,19 @@ const ActiveOrdersPage: React.FC = () => {
                                         <strong>Composition:</strong>{' '}
                                         {order.dishesOrders.map((dish) => dish.dishName).join(', ').toLowerCase()}
                                     </p>
+
                                 </Panel>
                             </Collapse>
+                        </div>
+                        <div
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                width: '100%'
+                            }}
+                        >
+                            {renderActionButton(order.status, order.id)}
                         </div>
                     </StyledCard>
                 ))}

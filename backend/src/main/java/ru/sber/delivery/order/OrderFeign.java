@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
@@ -16,16 +17,18 @@ import java.util.List;
  */
 @FeignClient(name = "orderService", url="localhost:8083/")
 public interface OrderFeign {
-    @PutMapping("orders/courier")
-    ResponseEntity<?> updateOrderCourier(@RequestBody Object order);
+    @PutMapping("orders/courier/{courierId}")
+    ResponseEntity<?> updateOrderCourier(@RequestHeader("Authorization") String bearerToken, @PathVariable("courierId") String courierId, @RequestBody Object order);
     @GetMapping("orders/awaiting-delivery/by-page")
-    ResponseEntity<Page<?>> findAllActiveOrdersByPage(@RequestParam int page, @RequestParam int pageSize);
+    ResponseEntity<Page<?>> findAllActiveOrdersByPage(@RequestHeader("Authorization") String bearerToken, @RequestParam int page, @RequestParam int pageSize);
     @GetMapping("orders/{idOrder}")
-    ResponseEntity<?> getOrderById(@PathVariable("idOrder") long id);
+    ResponseEntity<?> getOrderById(@RequestHeader("Authorization") String bearerToken, @PathVariable("idOrder") long id);
     @GetMapping("orders/courier/{idCourier}")
-    ResponseEntity<Page<?>> getAllOrdersByCourierId(@PathVariable("idCourier") long id, @RequestParam int page, @RequestParam int pageSize);
+    ResponseEntity<Page<?>> getAllOrdersByCourierId(@RequestHeader("Authorization") String bearerToken, @PathVariable("idCourier") String id, @RequestParam int page, @RequestParam int pageSize);
     @GetMapping("orders/delivering/courier/{idCourier}")
-    ResponseEntity<List<?>> getOrdersIsDelivering(@PathVariable("idCourier") long id);
-    @PutMapping("orders")
-    ResponseEntity<?> updateOrderStatus(@RequestBody Object order);
+    ResponseEntity<List<?>> getOrdersIsDelivering(@RequestHeader("Authorization") String bearerToken, @PathVariable("idCourier") String id);
+    @PutMapping("orders/{idOrder}")
+    ResponseEntity<?> updateOrderStatus(@RequestHeader("Authorization") String bearerToken, @PathVariable("idOrder") long id, @RequestBody Object order);
+    @GetMapping("analytic/courier/{id}")
+    ResponseEntity<Integer> getCountOrderFromCourier(@RequestHeader("Authorization") String bearerToken, @PathVariable("id") String idCourier);
 }

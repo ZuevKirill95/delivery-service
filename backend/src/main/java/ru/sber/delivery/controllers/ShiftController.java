@@ -85,7 +85,7 @@ public class ShiftController {
      * @return - смены пользователя
      */
     @GetMapping("/courier/{id}")
-    public ResponseEntity<List<Shift>> getAllCouriersShifts(@PathVariable("id") long idUser) {
+    public ResponseEntity<List<Shift>> getAllCouriersShifts(@PathVariable("id") String idUser) {
         log.info("Получение информации о всех сменах курьера");
         return ResponseEntity.ok().body(shiftService.findAllShiftsByUser(idUser));
 

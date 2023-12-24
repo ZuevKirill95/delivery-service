@@ -21,11 +21,13 @@ export interface Order {
 export interface OrderSliceState {
   currentOrder: Order | null;
   allOrders: Order[];
+  countOrder:number;
 }
 
 const initialState: OrderSliceState = {
   currentOrder: null,
   allOrders: [],
+  countOrder: 0,
 };
 
 const orderSlice = createSlice({
@@ -41,11 +43,15 @@ const orderSlice = createSlice({
     setAllOrders: (state, action: PayloadAction<Order[]>) => {
       state.allOrders = action.payload;
     },
+    setCountOrder: (state, action: PayloadAction<number>) => {
+      state.countOrder = action.payload;
+    },
   },
 });
 
 export const { setCurrentOrder, 
               setAllOrders, 
-              concatenateAllOrders } = orderSlice.actions;
+              concatenateAllOrders,
+              setCountOrder} = orderSlice.actions;
 
 export default orderSlice.reducer;

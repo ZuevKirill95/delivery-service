@@ -12,12 +12,6 @@ import java.util.Optional;
 public interface RestaurantEmployeeService {
 
     /**
-     * Обновляет данные пользователя
-     * @param user новые данные администратора
-     * @return true - в случае успеха
-     */
-    boolean update(User user);
-    /**
      * Возвращает свободных курьеров
      * @return список курьеров
      */
@@ -35,6 +29,6 @@ public interface RestaurantEmployeeService {
      * @param idUser - номер пользователя которого требуется уведомить
      * @return true в случае успеха
      */
-    boolean notifyCourier(long idUser);
+    boolean notifyCourier(String idUser, long idOrder);
 
 }

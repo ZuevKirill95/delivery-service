@@ -6,10 +6,11 @@ interface Role {
 }
 
 interface User {
-    id: number;
+    id: string;
     username: string;
     email: string;
-    dateRegistration: string;
+    phoneNumber: string;
+    registrationDate: string;
     status: string;
     latitude: number;
     longitude: number;
@@ -46,10 +47,26 @@ const authSlice = createSlice({
         },
         loginUser: (state, action: PayloadAction<any>) => {
             state.isAuth = true;
-            state.user = action.payload;
-            console.log(action.payload)
 
-            if (action.payload.accessToken) {
+            if (action.payload.access_token && action.payload.refresh_token) {
+                sessionStorage.setItem('user', JSON.stringify(action.payload));
+            }
+        },
+        setUserData: (state, action: PayloadAction<any>) => {
+            const date = new Date(action.payload.registrationDate);
+  
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            
+            action.payload.registrationDate  = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+
+            state.user = action.payload;
+            if (action.payload.id) {
                 localStorage.setItem('user', JSON.stringify(action.payload));
             }
         },
@@ -58,10 +75,11 @@ const authSlice = createSlice({
             state.user = null;
 
             localStorage.removeItem('user');
-        },
+            sessionStorage.removeItem('user');
+        }
     },
 });
 
-export const { set, setAuth, loginUser, logoutUser } = authSlice.actions;
+export const { set, setAuth, loginUser, logoutUser, setUserData } = authSlice.actions;
 
 export default authSlice.reducer;

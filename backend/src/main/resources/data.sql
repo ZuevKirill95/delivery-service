@@ -1,0 +1,1 @@
+insert into courier_service.roles (role) values ('COURIER');

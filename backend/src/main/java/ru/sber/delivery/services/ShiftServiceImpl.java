@@ -2,13 +2,16 @@ package ru.sber.delivery.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
 import ru.sber.delivery.entities.Shift;
 import ru.sber.delivery.entities.User;
 import ru.sber.delivery.exceptions.UserNotFound;
 import ru.sber.delivery.repositories.ShiftRepository;
-import ru.sber.delivery.security.services.UserDetailsImpl;
+// import ru.sber.delivery.security.services.UserDetailsImpl;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,10 +24,12 @@ import java.util.List;
 public class ShiftServiceImpl implements ShiftService {
 
     private final ShiftRepository shiftRepository;
+    private final JwtService jwtService;
 
     @Autowired
-    public ShiftServiceImpl(ShiftRepository shiftRepository) {
+    public ShiftServiceImpl(ShiftRepository shiftRepository, JwtService jwtService) {
         this.shiftRepository = shiftRepository;
+        this.jwtService = jwtService;
     }
 
     @Override
@@ -66,7 +71,7 @@ public class ShiftServiceImpl implements ShiftService {
     }
 
     @Override
-    public List<Shift> findAllShiftsByUser(long idUser) {
+    public List<Shift> findAllShiftsByUser(String idUser) {
         log.info("Поиск смен пользователя");
         return shiftRepository.findAllByUserId(idUser);
     }
@@ -76,15 +81,19 @@ public class ShiftServiceImpl implements ShiftService {
      *
      * @return идентификатор пользователя
      */
-    private long getUserIdSecurityContext() {
+    private String getUserIdSecurityContext() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (authentication instanceof JwtAuthenticationToken) {
+            JwtAuthenticationToken jwtAuthenticationToken = (JwtAuthenticationToken) authentication;
+            Jwt jwt = jwtAuthenticationToken.getToken();
+            String subClaim = jwtService.getSubClaim(jwt);
 
-        if (principal instanceof UserDetailsImpl) {
-            return ((UserDetailsImpl) principal).getId();
+            return subClaim;
         } else {
             throw new UserNotFound("Пользователь не найден");
         }
+
     }
 
 }

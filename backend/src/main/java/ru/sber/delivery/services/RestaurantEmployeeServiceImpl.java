@@ -2,16 +2,14 @@ package ru.sber.delivery.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import ru.sber.delivery.entities.Notify;
 import ru.sber.delivery.entities.Role;
 import ru.sber.delivery.entities.User;
 import ru.sber.delivery.entities.enum_model.ERole;
 import ru.sber.delivery.entities.enum_model.EStatusCourier;
-import ru.sber.delivery.exceptions.UserNotFound;
 import ru.sber.delivery.repositories.RoleRepository;
 import ru.sber.delivery.repositories.UserRepository;
-import ru.sber.delivery.security.services.UserDetailsImpl;
 
 import java.math.BigDecimal;
 import java.util.Comparator;
@@ -26,20 +24,15 @@ import java.util.Optional;
 public class RestaurantEmployeeServiceImpl implements RestaurantEmployeeService {
 
     private final UserRepository userRepository;
-    private final AdministrationService administrationService;
+    private final NotifyService notifyService;
     private final RoleRepository roleRepository;
 
     @Autowired
-    public RestaurantEmployeeServiceImpl(UserRepository userRepository, AdministrationService administrationService, RoleRepository roleRepository) {
+    public RestaurantEmployeeServiceImpl(UserRepository userRepository, AdministrationService administrationService, NotifyService notifyService, RoleRepository roleRepository) {
         this.userRepository = userRepository;
-        this.administrationService = administrationService;
-        this.roleRepository = roleRepository;
-    }
 
-    @Override
-    public boolean update(User user) {
-        log.info("Обновление данных (со стороны работника ресторана)");
-        return administrationService.update(user);
+        this.notifyService = notifyService;
+        this.roleRepository = roleRepository;
     }
 
     @Override
@@ -59,6 +52,7 @@ public class RestaurantEmployeeServiceImpl implements RestaurantEmployeeService 
                     .min(Comparator.comparingDouble(user -> haversineDistance(user.getLongitude().doubleValue(), user.getLatitude().doubleValue(),
                             restaurantLongitude.doubleValue(), restaurantLatitude.doubleValue())))
                     .orElse(null);
+            log.info("Ближайший курьер {}", nearestCourier);
             return Optional.ofNullable(nearestCourier);
         }
         log.warn("Курьер не  найден");
@@ -83,31 +77,10 @@ public class RestaurantEmployeeServiceImpl implements RestaurantEmployeeService 
     }
 
     @Override
-    public boolean notifyCourier(long idUser) {
+    public boolean notifyCourier(String idUser, long idOrder) {
         log.info("Уведомление курьера о заказе");
-        Optional<User> user = userRepository.findById(idUser);
-        if (user.isPresent()) {
-            log.info("Уведомление курьера о заказе");
-            user.get().setIsNotify(true);
-            return update(user.get());
-        }
-        return false;
-    }
-
-    /**
-     * Возвращает id user из security context
-     *
-     * @return индификатор пользователя
-     */
-    private long getUserIdSecurityContext() {
-
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-
-        if (principal instanceof UserDetailsImpl) {
-            return ((UserDetailsImpl) principal).getId();
-        } else {
-            throw new UserNotFound("Пользователь не найден");
-        }
+        notifyService.save(new Notify(idUser, idOrder));
+        return true;
     }
 
 }

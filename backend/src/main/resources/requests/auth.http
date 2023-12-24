@@ -5,7 +5,7 @@ Content-Type: application/json
 {
   "username": "test",
   "email": "test@yandex.ru",
-  "phoneNumber": "+79002311813",
+  "phoneNumber": "+79302321813",
   "password": "password"
 }
 

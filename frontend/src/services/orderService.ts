@@ -1,39 +1,16 @@
 import axios from "axios";
 import authHeader from "./authHeader";
 import { Dispatch } from "redux";
-import { setCurrentOrder, setAllOrders, concatenateAllOrders } from "../slices/orderSlice";
+import {setCurrentOrder, setAllOrders, concatenateAllOrders, setCountOrder} from "../slices/orderSlice";
 
-interface Dishes {
-  orderId:number;
-  dishId:number;
-  dishName:string;
-}
-
-interface Order {
-  id: number;
-  courierId: number | null;
-  clientName: string | null;
-  description: string | null;
-  clientPhone: number | null;
-  status: string | null;
-  orderTime: string;
-  address: string | null;
-  branchAddress: string | null;
-  flat: number | null;
-  frontDoor: number | null;
-  floor: number | null;
-  weight: number | null;
-  endCookingTime: string;
-  dishesOrders: Dishes[];
-}
 
 const API_URL_ORDER = "/orders";
 
-const updateOrder = async (orderData: Order, dispatch: Dispatch) => {
+const updateOrder = async (orderData: { id: number; status: string }, dispatch: Dispatch) => {
   const headers = authHeader();
 
   try {
-    const response = await axios.put(API_URL_ORDER, orderData, { headers });
+    const response = await axios.put(API_URL_ORDER+"/"+orderData.id, orderData, { headers });
     const updatedOrder = response.data;
 
     dispatch(setCurrentOrder(updatedOrder));
@@ -128,6 +105,22 @@ const getOrdersForCourier = async (page: number, dispatch: Dispatch) => {
   }
 };
 
+const getCountOrder = async (dispatch: Dispatch) => {
+  const headers = authHeader();
+
+  try {
+    const response = await axios.get(`${API_URL_ORDER}/analytic/count`, { headers });
+    const courierOrders = response.data;
+
+    dispatch(setCountOrder(courierOrders));
+
+    return courierOrders;
+  } catch (error) {
+    console.error("Ошибка при получении заказов для курьера:", error);
+    throw error;
+  }
+};
+
 const orderService = {
   updateOrder,
   assignOrderToCourier,
@@ -135,6 +128,7 @@ const orderService = {
   getActiveDeliveryOrders,
   getOrderById,
   getOrdersForCourier,
+  getCountOrder
 };
 
 export default orderService;

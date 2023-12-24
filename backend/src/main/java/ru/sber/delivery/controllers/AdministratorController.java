@@ -4,13 +4,21 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
+
 import ru.sber.delivery.entities.User;
 import ru.sber.delivery.services.AdministrationService;
+import ru.sber.delivery.services.JwtService;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.jwt.Jwt;
 
 /**
  * Класс отвечающий за обработку запросов администраторов
@@ -20,14 +28,32 @@ import java.util.Optional;
 @RequestMapping("administrators")
 public class AdministratorController {
     private final AdministrationService administratorService;
+    private final JwtService jwtService;
 
     /**
      * Конструктор контроллера администраторов
      */
     @Autowired
-    public AdministratorController(AdministrationService administratorService) {
+    public AdministratorController(AdministrationService administratorService, JwtService jwtService) {
         this.administratorService = administratorService;
+        this.jwtService = jwtService;
     }
+
+    // @GetMapping("/test")
+    // @PreAuthorize("hasRole('client_user')")
+    // public ResponseEntity<?> test() {
+    //     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+    //     JwtAuthenticationToken jwtAuthenticationToken = (JwtAuthenticationToken) authentication;
+    //     Jwt jwt = Jwt.withTokenValue(jwtAuthenticationToken.getToken().getTokenValue()).header(null, jwtAuthenticationToken).claim(null, jwtAuthenticationToken).build();
+    //     String subClaim = jwtService.getSubClaim(jwt);
+    //     System.out.println(subClaim);
+    //     System.out.println(jwt.getTokenValue());
+    //     System.out.println(jwtService.getExpirationTime(jwt));
+    //     return ResponseEntity.ok().body(subClaim);
+
+        
+    // }
 
     /**
      * Возвращает информацию о курьере
@@ -36,7 +62,7 @@ public class AdministratorController {
      * @return - данные о курьере
      */
     @GetMapping("/courier/{id}")
-    public ResponseEntity<?> getCouriersData(@PathVariable("id") long idUser) {
+    public ResponseEntity<?> getCouriersData(@PathVariable("id") String idUser) {
         log.info("Получение информации о курьере");
         Optional<User> optionalUser = administratorService.findUser(idUser);
 
@@ -72,7 +98,7 @@ public class AdministratorController {
      * @return - результат запроса
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteCourier(@PathVariable("id") long idUser) {
+    public ResponseEntity<?> deleteCourier(@PathVariable("id") String idUser) {
         log.info("Удаление курьера");
         User user = new User();
         user.setId(idUser);

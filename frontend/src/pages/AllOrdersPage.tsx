@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Card, Button, Collapse, Spin } from 'antd';
+import { Card, Collapse, Spin } from 'antd';
 import styled from 'styled-components';
 import orderService from '../services/orderService';
 import { RootState } from '../store';

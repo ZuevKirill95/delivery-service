@@ -11,7 +11,7 @@ import java.util.List;
 @Repository
 public interface ShiftRepository extends JpaRepository<Shift, Long> {
 
-    List<Shift> findAllByUserId(long userId);
+    List<Shift> findAllByUserId(String userId);
 
     void deleteById(long id);
 

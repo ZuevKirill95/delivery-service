@@ -1,99 +1,177 @@
 package ru.sber.delivery.controllers;
 
-import jakarta.validation.Valid;
-import ru.sber.delivery.entities.enum_model.ERole;
-import ru.sber.delivery.entities.Role;
-import ru.sber.delivery.entities.User;
-import ru.sber.delivery.entities.request.LoginRequest;
-import ru.sber.delivery.entities.request.SignupRequest;
-import ru.sber.delivery.entities.response.JwtResponse;
-import ru.sber.delivery.entities.response.MessageResponse;
-import ru.sber.delivery.repositories.RoleRepository;
-import ru.sber.delivery.repositories.UserRepository;
-import ru.sber.delivery.security.jwt.JwtUtils;
-import ru.sber.delivery.security.services.UserDetailsImpl;
+import jakarta.transaction.Transactional;
+import ru.sber.delivery.exceptions.UserNotFound;
+import ru.sber.delivery.models.Attributes;
+import ru.sber.delivery.models.Credential;
+import ru.sber.delivery.models.LoginRequest;
+import ru.sber.delivery.models.RefreshToken;
+import ru.sber.delivery.models.SignupRequest;
+import ru.sber.delivery.models.UserRequest;
+import ru.sber.delivery.models.UserDetails;
+import ru.sber.delivery.services.CourierService;
+import ru.sber.delivery.services.JwtService;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
-import java.time.LocalDateTime;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+
+import org.springframework.http.*;
+
+
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class AuthController {
-    private final AuthenticationManager authenticationManager;
-    private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
-    private final PasswordEncoder encoder;
-    private final JwtUtils jwtUtils;
+    private final String keycloakTokenUrl = "http://localhost:8080/realms/delivery-realm/protocol/openid-connect/token";
+    private final String keycloakCreateUserUrl = "http://localhost:8080/admin/realms/delivery-realm/users";
+    private final String clientId = "login-app";
+    private final String grantType = "password";
+    
+    private final CourierService courierService;
+    private final JwtService jwtService;
+    
     @Autowired
-    public AuthController(AuthenticationManager authenticationManager, UserRepository userRepository,
-                          RoleRepository roleRepository, PasswordEncoder encoder, JwtUtils jwtUtils) {
-        this.authenticationManager = authenticationManager;
-        this.userRepository = userRepository;
-        this.roleRepository = roleRepository;
-        this.encoder = encoder;
-        this.jwtUtils = jwtUtils;
+    public AuthController(CourierService courierService, JwtService jwtService) {
+        this.courierService = courierService;
+        this.jwtService = jwtService;
+    }
+
+    
+    @Transactional
+    @PostMapping("/signup")
+    @PreAuthorize("hasRole('client_admin')")
+    public ResponseEntity<String> signUpUser(@RequestBody SignupRequest signupRequest) {
+        Jwt jwtToken = getUserJwtTokenSecurityContext(); 
+
+        UserRequest userRequest = new UserRequest();
+        userRequest.setUsername(signupRequest.getUsername());
+        userRequest.setEmail(signupRequest.getEmail());
+        userRequest.setEnabled(true);
+
+        Attributes attributes = new Attributes();
+        attributes.setPhoneNumber(signupRequest.getPhoneNumber());
+        userRequest.setAttributes(attributes);
+
+        Credential credential = new Credential();
+        credential.setType(grantType);
+        credential.setValue(signupRequest.getPassword());
+
+        List<Credential> credentials = new ArrayList<>();
+        credentials.add(credential);
+        userRequest.setCredentials(credentials);
+
+        HttpHeaders userHeaders = new HttpHeaders();
+        userHeaders.setContentType(MediaType.APPLICATION_JSON);
+        userHeaders.setBearerAuth(jwtToken.getTokenValue());
+
+        HttpEntity<UserRequest> userEntity = new HttpEntity<>(userRequest, userHeaders);
+
+        try {
+                ResponseEntity<String> userResponseEntity = new RestTemplate().exchange(
+                        keycloakCreateUserUrl, HttpMethod.POST, userEntity, String.class);
+                
+                String responseHeader = userResponseEntity.getHeaders().get("Location").get(0);
+
+                int lastSlashIndex = responseHeader.lastIndexOf("/");
+                String userId = responseHeader.substring(lastSlashIndex + 1);
+
+                courierService.addUserById(userId);
+
+                return new ResponseEntity<>(userResponseEntity.getStatusCode());
+        } catch (Exception e){
+                e.printStackTrace();
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
     }
 
     @PostMapping("/signin")
-    public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<String> signInUser(@RequestBody LoginRequest loginRequest) {
+        HttpHeaders tokenHeaders = new HttpHeaders();
+        tokenHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        
+        MultiValueMap<String, String> tokenBody = new LinkedMultiValueMap<>();
+        tokenBody.add("grant_type", grantType);
+        tokenBody.add("client_id", clientId);
+        tokenBody.add("username", loginRequest.getUsername());
+        tokenBody.add("password", loginRequest.getPassword());
 
-        UsernamePasswordAuthenticationToken authenticationToken
-                = new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword());
+        HttpEntity<MultiValueMap<String, String>> tokenEntity = new HttpEntity<>(tokenBody, tokenHeaders);
 
-        Authentication authentication = authenticationManager.authenticate(authenticationToken);
+        try {
+                ResponseEntity<String> tokenResponseEntity = new RestTemplate().exchange(
+                        keycloakTokenUrl, HttpMethod.POST, tokenEntity, String.class);
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = jwtUtils.generateJwtToken(authentication);
-
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-
-        List<String> roles = userDetails.getAuthorities().stream()
-                .map(item -> item.getAuthority())
-                .collect(Collectors.toList());
-
-        JwtResponse body = new JwtResponse(jwt, userDetails.getId(), userDetails.getUsername(), userDetails.getEmail(),
-                userDetails.getPhoneNumber(), userDetails.getDateRegistration(), userDetails.getStatus(),
-                userDetails.getLatitude(), userDetails.getLongitude(), userDetails.getIsNotify(), roles);
-
-        return ResponseEntity
-                .ok(body);
+                return new ResponseEntity<>(tokenResponseEntity.getBody(), 
+                        tokenResponseEntity.getStatusCode());
+        } catch (Exception e) {
+                e.printStackTrace();
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
     }
 
-    @PostMapping("/signup")
-    public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
-        if (userRepository.existsByUsername(signUpRequest.getUsername())) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Пользователь уже существует"));
-        }
-
-        if (userRepository.existsByEmail(signUpRequest.getEmail())) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Email уже используется"));
-        }
-
-        if (userRepository.existsByPhoneNumber(signUpRequest.getPhoneNumber())) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Номер телефона уже используется"));
-        }
-
-        User user = new User(signUpRequest.getUsername(), signUpRequest.getEmail(), signUpRequest.getPhoneNumber(),
-                encoder.encode(signUpRequest.getPassword()));
+    @PostMapping("/refresh")
+    public ResponseEntity<String> refreshUser(@RequestBody RefreshToken refreshToken) {
+        HttpHeaders tokenHeaders = new HttpHeaders();
+        tokenHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         
-        Role userRole = roleRepository.findByRole(ERole.COURIER)
-                    .orElseThrow(() -> new RuntimeException("Роль не найдена"));
-        user.setDateRegistration(LocalDateTime.now());
-        user.setRole(userRole);
-        userRepository.save(user);
+        MultiValueMap<String, String> tokenBody = new LinkedMultiValueMap<>();
+        tokenBody.add("grant_type", "refresh_token");
+        tokenBody.add("client_id", clientId);
+        tokenBody.add("refresh_token", refreshToken.getRefresh_token());
 
-        return ResponseEntity.ok(new MessageResponse("Пользователь успешно зарегистрирован"));
+        HttpEntity<MultiValueMap<String, String>> tokenEntity = new HttpEntity<>(tokenBody, tokenHeaders);
+
+        try {
+                ResponseEntity<String> tokenResponseEntity = new RestTemplate().exchange(
+                        keycloakTokenUrl, HttpMethod.POST, tokenEntity, String.class);
+
+                return new ResponseEntity<>(tokenResponseEntity.getBody(), 
+                        tokenResponseEntity.getStatusCode());
+        } catch (Exception e) {
+                e.printStackTrace();
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @GetMapping
+    @PreAuthorize("hasRole('client_user')")
+    public ResponseEntity<UserDetails> getUserDetails() {
+        HttpHeaders userHeaders = new HttpHeaders();
+        userHeaders.setContentType(MediaType.APPLICATION_JSON);
+
+        Jwt jwt = getUserJwtTokenSecurityContext();
+        UserDetails userDetails = new UserDetails(jwtService.getSubClaim(jwt), jwtService.getPreferredUsernameClaim(jwt), 
+                jwtService.getEmailClaim(jwt), jwtService.getPhoneNumberClaim(jwt), jwtService.getCreatedTimestampClaim(jwt));
+
+        return new ResponseEntity<>(userDetails, userHeaders, HttpStatus.OK);
+    }
+
+    
+    private Jwt getUserJwtTokenSecurityContext() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication instanceof JwtAuthenticationToken) {
+            JwtAuthenticationToken jwtAuthenticationToken = (JwtAuthenticationToken) authentication;
+            Jwt jwt = jwtAuthenticationToken.getToken();
+
+            return jwt;
+        } else {
+            throw new UserNotFound("Пользователь не найден");
+        }
     }
 }

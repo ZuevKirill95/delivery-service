@@ -1,6 +1,6 @@
 {
   "name": "frontend",
-  "version": "0.1.0",
+  "versionpm installn": "0.1.0",
   "private": true,
   "dependencies": {
     "@pbe/react-yandex-maps": "^1.2.5",

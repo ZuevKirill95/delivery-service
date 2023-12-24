@@ -12,11 +12,11 @@ import java.util.Optional;
 public interface OrderService {
     /**
      * Обновляет статус заказа
-     *
+     *@param id ндификатор заказа
      * @param order заказ
      * @return ответ
      */
-    ResponseEntity<?> updateOrderStatus(Object order);
+    ResponseEntity<?> updateOrderStatus(Long id, Object order);
     /**
      * Устанавливает курьера на заказ
      * @param order заказ
@@ -36,7 +36,7 @@ public interface OrderService {
      *
      * @return заказ
      */
-    Optional<?> findOrderById();
+    Optional<?> findOrderById(long idOrder);
     /**
      * Возвращает все заказы которые брал курьер
      *
@@ -45,4 +45,5 @@ public interface OrderService {
     Page<?> findOrdersByCourierId(int page, int pageSize);
 
     List<?> getOrdersIsDelivering();
+    Integer getCountOrderCourier();
 }

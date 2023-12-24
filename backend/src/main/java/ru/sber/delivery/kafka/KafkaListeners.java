@@ -53,6 +53,7 @@ public class KafkaListeners {
         double pos2 = Double.parseDouble(numbers[1]);
 
         Optional<User> user = restaurantEmployeeService.findNearestFreeCourier(BigDecimal.valueOf(pos1), BigDecimal.valueOf(pos2));
-        user.ifPresent(user1 -> restaurantEmployeeService.notifyCourier(user1.getId()));
+
+        user.ifPresent(user1 -> restaurantEmployeeService.notifyCourier(user1.getId(), order.getId()));
     }
 }

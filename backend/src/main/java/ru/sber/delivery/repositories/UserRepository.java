@@ -11,19 +11,19 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface UserRepository extends JpaRepository<User, Long> {
+public interface UserRepository extends JpaRepository<User, String> {
 
 
-    Optional<User> findUserByEmailAndPassword(String email, String password);
+    // Optional<User> findUserByEmailAndPassword(String email, String password);
 
-    Optional<User> findByUsername(String username);
+    // Optional<User> findByUsername(String username);
     List<User> findAllByStatus(EStatusCourier statusCourier);
 
-    Boolean existsByUsername(String username);
+    // Boolean existsByUsername(String username);
 
-    Boolean existsByEmail(String email);
+    // Boolean existsByEmail(String email);
 
-    Boolean existsByPhoneNumber(String email);
+    // Boolean existsByPhoneNumber(String email);
 
     List<User> findUserByRoleAndStatus(Role role, EStatusCourier status);
 

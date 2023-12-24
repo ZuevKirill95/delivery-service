@@ -9,6 +9,7 @@ import ru.sber.delivery.entities.data.Coordinates;
 import ru.sber.delivery.entities.enum_model.EStatusCourier;
 import ru.sber.delivery.services.CourierService;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -91,6 +92,15 @@ public class CourierController {
         }
     }
 
-
+    @GetMapping("/notify")
+    public ResponseEntity<List<?>> getNotifyOrder() {
+        log.info("Возвращает заказы о которых требуется уведомить");
+        List<?> orders = courierService.notifyCourier();
+        if (orders.isEmpty()){
+            return ResponseEntity.notFound().build();
+        } else {
+            return ResponseEntity.ok().body(orders);
+        }
+    }
 
 }

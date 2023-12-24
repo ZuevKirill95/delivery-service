@@ -18,11 +18,15 @@ PUT http://localhost:8080/couriers/status?statusCourier=FREE
 Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsImlhdCI6MTY5NTg0MDQxOCwiZXhwIjoxNjk1OTI2ODE4fQ.NRRawlr4nAAbNB2BAEVQ3nPP-jrhTso_62ELkEOnY5Y
 
 ###
-PUT http://localhost:8080/couriers/coordinates
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsImlhdCI6MTY5NTg0MDQxOCwiZXhwIjoxNjk1OTI2ODE4fQ.NRRawlr4nAAbNB2BAEVQ3nPP-jrhTso_62ELkEOnY5Y
+PUT http://localhost:8081/couriers/coordinates
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0IiwiaWF0IjoxNjk4ODUwMjY2LCJleHAiOjE2OTg5MzY2NjZ9.YZGMGDnmlnexGUE-0N33ScA3CWTERQno0Ek1ppU16sQ
 Content-Type: application/json
 
 {
   "latitude" : "145.6767",
   "longitude" : "123.3434"
 }
+
+###
+GET http://localhost:8081/couriers/notify
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0IiwiaWF0IjoxNjk4ODU0NDc0LCJleHAiOjE2OTg5NDA4NzR9.CUssBwtgQj7GsFfOYtBwGXy2PugsFr5lcOtLn3D3_4c

@@ -14,15 +14,15 @@ public interface ShiftService {
      * Создает новую смену курьера
      *
      * @return - id смены
-     */
+    //  */
     long save();
 
-    /**
-     * Заканчивает смену курьера
-     *
-     * @param shift - смена курьера
-     * @return - true в случае успеха
-     */
+    // /**
+    //  * Заканчивает смену курьера
+    //  *
+    //  * @param shift - смена курьера
+    //  * @return - true в случае успеха
+    //  */
     boolean update(Shift shift);
 
     /**
@@ -39,6 +39,6 @@ public interface ShiftService {
      * @param idUser - id пользователя
      * @return - список смен
      */
-    List<Shift> findAllShiftsByUser(long idUser);
+    List<Shift> findAllShiftsByUser(String idUser);
 
 }
